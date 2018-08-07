@@ -1,14 +1,38 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"bytes"
+	"encoding/gob"
+	"log"
+	"crypto/sha256"
+	"encoding/hex"
+)
 
 const subsidy = 10
-
 
 type Transaction struct {
 	ID   []byte
 	Vin  []TXInput
 	Vout []TXOutput
+}
+
+type TXInput struct {
+	Txid      []byte
+	Vout      int
+	ScriptSig string
+}
+
+type TXOutput struct {
+	// the value field stores the number of satoshis, not the number of BTC.
+	// A satoshi is a hundred millionth of a bitcoin (0.00000001 BTC)
+	Value        int
+	ScriptPubKey string
+}
+
+// IsCoinbase checks whether the transaction is coinbase
+func (tx Transaction) IsCoinbase() bool {
+	return len(tx.Vin) == 1 && len(tx.Vin[0].Txid) == 0 && tx.Vin[0].Vout == -1
 }
 
 func NewCoinbaseTX(to, data string) *Transaction {
@@ -24,15 +48,55 @@ func NewCoinbaseTX(to, data string) *Transaction {
 	return &tx
 }
 
-type TXInput struct {
-	Txid      []byte
-	Vout      int
-	ScriptSig string
+func (tx *Transaction) SetID() {
+	var encoded bytes.Buffer
+	var hash [32]byte
+
+	enc := gob.NewEncoder(&encoded)
+	err := enc.Encode(tx)
+	if err != nil {
+		log.Panic(err)
+	}
+	hash = sha256.Sum256(encoded.Bytes())
+	tx.ID = hash[:]
 }
 
-type TXOutput struct {
-	// the value field stores the number of satoshis, not the number of BTC.
-	// A satoshi is a hundred millionth of a bitcoin (0.00000001 BTC)
-	Value        int
-	ScriptPubKey string
+func (in *TXInput) CanUnlockOutputWith(unlockingData string) bool {
+	return in.ScriptSig == unlockingData
+}
+
+func (out *TXOutput) CanBeUnlockedWith(unlockingData string) bool {
+	return out.ScriptPubKey == unlockingData
+}
+
+func NewUTXOTransaction(from, to string, amount int, bc *Blockchain) *Transaction {
+	var inputs []TXInput
+	var outputs []TXOutput
+
+	acc, validOutputs := bc.FindSpendableOutputs(from, amount)
+
+	if acc < amount {
+		log.Panic("ERROR: Not enough funds")
+	}
+
+	// Build a list of inputs
+	for txid, outs := range validOutputs {
+		txID, _ := hex.DecodeString(txid)
+
+		for _, out := range outs {
+			input := TXInput{txID, out, from}
+			inputs = append(inputs, input)
+		}
+	}
+
+	// Build a list of outputs
+	outputs = append(outputs, TXOutput{amount, to})
+	if acc > amount {
+		outputs = append(outputs, TXOutput{acc - amount, from}) // a change
+	}
+
+	tx := Transaction{nil, inputs, outputs}
+	tx.SetID()
+
+	return &tx
 }
