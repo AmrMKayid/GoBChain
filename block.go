@@ -9,11 +9,11 @@ import (
 )
 
 type Block struct {
-	Timestamp 		int64
-	Transactions  	[]*Transaction
-	PrevBlockHash	[]byte
-	Hash			[]byte
-	Nonce			int
+	Timestamp     int64
+	Transactions  []*Transaction
+	PrevBlockHash []byte
+	Hash          []byte
+	Nonce         int
 }
 
 func NewBlock(transactions []*Transaction, prevBlockHash []byte) *Block {
