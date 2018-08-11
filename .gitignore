@@ -171,3 +171,7 @@ sysinfo.txt
 
 # Repo scratch directory
 scratch/
+
+# Database
+*.db
+*.dat
