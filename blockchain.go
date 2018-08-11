@@ -296,6 +296,8 @@ func (bc *Blockchain) Iterator() *BlockchainIterator {
 
 //-----------------------------------------------------------------//
 
+//----------------------- Helper -----------------------//
+
 func dbExists() bool {
 	if _, err := os.Stat(dbFile); os.IsNotExist(err) {
 		return false
@@ -303,3 +305,5 @@ func dbExists() bool {
 
 	return true
 }
+
+//----------------------------------------------------//

@@ -20,12 +20,18 @@ type Wallet struct {
 	PublicKey  []byte
 }
 
+//----------------------- Construction -----------------------//
+
 func NewWallet() *Wallet {
 	private, public := newKeyPair()
 	wallet := Wallet{private, public}
 
 	return &wallet
 }
+
+//-----------------------------------------------------------//
+
+//----------------------- Addresses -----------------------//
 
 func (w Wallet) GetAddress() []byte {
 	pubKeyHash := HashPubKey(w.PublicKey)
@@ -49,6 +55,10 @@ func ValidateAddress(address string) bool {
 
 	return bytes.Compare(actualChecksum, targetChecksum) == 0
 }
+
+//-------------------------------------------------------//
+
+//----------------------- Helper -----------------------//
 
 func HashPubKey(pubKey []byte) []byte {
 	publicSHA256 := sha256.Sum256(pubKey)
@@ -77,3 +87,5 @@ func newKeyPair() (ecdsa.PrivateKey, []byte) {
 
 	return *private, pubKey
 }
+
+//----------------------------------------------------//
